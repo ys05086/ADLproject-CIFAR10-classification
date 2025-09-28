@@ -64,7 +64,7 @@ for it in range(restore_iter, num_training + 1):
         model.eval()
         count = 0
         for itest in range(1000):
-            test_img = test_images[itest:itest + 1] # 1, 32, 32 but we need 1, 32, 32, 1
+            test_img = test_images[itest:itest + 1] # image 그대로.
             test_img = np.transpose(test_img, (0, 3, 1, 2)) # Change to [B, C, H, W]
 
             with torch.no_grad():
