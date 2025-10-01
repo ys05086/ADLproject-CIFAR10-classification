@@ -13,6 +13,8 @@ import numpy as np
 import torch
 import cv2
 import os
+from tqdm import tqdm
+import time
 
 # label = ['airplane', 'automobile', 'bird', 'cat', 'deer',
 #           'dog', 'frog', 'horse', 'ship', 'truck']
@@ -22,13 +24,16 @@ def load_image(path, num_img):
     imgs = np.zeros((num_img, 32, 32, 3)) # (N, H, W, C) 선언.
     cls = np.zeros(num_img)
 
-    cls_names = os.listdir(path) # 클래스 이름로드 ex) airplane, automobile, ...
-    print("Class Names: ", cls_names)
+    cls_names = sorted(os.listdir(path)) # 클래스 이름로드 ex) airplane, automobile, ... // sorted를 사용해서 알파벳 순서대로 정렬. -> 추가
+    if path == './CIFAR10/test':
+        print("\n------- Test Data Loading -------")
+    else:
+        print("\n------- Train Data Loading -------")
     img_count = 0
 
-    for ic in range(len(cls_names)):
+    for ic in tqdm(range(len(cls_names)), ncols=100):
         path_temp = path + '/' + cls_names[ic] + '/' # CIFAR10/train/airplane/ ... 형태
-        print("Loading Class : ", cls_names[ic])
+        # tqdm.write("Loading Class : %s" % cls_names[ic])
         img_names = os.listdir(path_temp) # 해당 클래스 내의 이미지 이름로드
 
         for im in range(len(img_names)):
@@ -44,8 +49,39 @@ def load_image(path, num_img):
 
             cls[img_count] = ic
             img_count += 1
-
+    print("---------------------------------\n")
     return imgs, cls
+
+# 학습 테스트용 함수. 
+def load_test_image(path, num_img):
+    num = num_img / 10 # 클래스 개수로 나누기.
+    imgs = np.zeros((num_img, 32, 32, 3)) # (N, H, W, C) 선언.
+    cls = np.zeros(num_img)
+
+    cls_names = sorted(os.listdir(path)) # 클래스 이름로드 ex) airplane, automobile, ... // sorted를 사용해서 알파벳 순서대로 정렬. -> 추가
+    if path == './CIFAR10/test':
+        print("\n------- Test Data Loading -------")
+    else:
+        print("\n------- Train Data Loading -------")
+    img_count = 0
+
+    for ic in range(len(cls_names)):
+        path_temp = path + '/' + cls_names[ic] + '/' # CIFAR10/train/airplane/ ... 형태
+        print("Loading Class : ", cls_names[ic])
+        img_names = os.listdir(path_temp) # 해당 클래스 내의 이미지 이름로드
+
+        for im in range(num):
+            img = cv2.imread(path_temp + img_names[im]) # 이미지 불러오기.
+
+            imgs[img_count, :, :, :] = img # (32, 32, 3) [H, W, C]
+
+            cls[img_count] = ic
+            img_count += 1
+    print("---------------------------------\n")
+    return imgs, cls
+
+
+
 
 # train image가 여러개 존재할때, 이를 CutMix를 활용해서 랜덤하게 생성.
 # def data_augmentation(image):
@@ -67,7 +103,7 @@ def load_image(path, num_img):
 # ------------- CUTOUT -----------------
 # Cutout 기법을 활용해 데이터를 가공.
 # Cutout Github 참고함.
-# 핵심은 일정 부분을 0으로 만들어버리는 것.
+# 핵심은 일정 부분을 0으로 만들어버리는 것. -> 데이터에 의도적인 손상을 주는 HOLE을 만듬.
 def cut_out(image, holes, length):
     # image = [H, W, C]
     H = image.shape[0]
@@ -96,10 +132,13 @@ def cut_out(image, holes, length):
     return output # 0으로 된 부분은 이미지가 사라짐.
 # ---------------------------------------
 
+
+# 이미지 뒤집기(좌우반전 FTN)
 def flip_image(image):
-    return cv2.flip(image, 1)
+    return cv2.flip(image, 1) # -1, 0, 1
 
 
+# 여기서 이미지 뒤집기와 CUTOUT 등 데이터 증강을 진행.
 def Mini_batch_training(train_img , train_cls, batch_size):
 
     batch_img = np.zeros((batch_size, 32, 32, 3)) # (B, H, W, C)
@@ -112,19 +151,19 @@ def Mini_batch_training(train_img , train_cls, batch_size):
         img = train_img[temp]
 
         temp_prob = np.random.rand()
-        # Cutout 및 Flip 적용.
-        # if temp_prob < 0.3:
-        #     img = cut_out(img, holes=np.random.randint(1, 3), length=np.random.randint(5, 9)) # 8 * 8 크기의 구멍을 1개 뚫음.
-        # elif 0.3 <= temp_prob < 0.7:
+        # # Cutout 및 Flip 적용.
+        # if temp_prob < 0.1:
+        #     img = cut_out(img, holes=np.random.randint(1, 3), length=np.random.randint(2, 5)) # 8 * 8 크기의 구멍을 1개 뚫음.
+        # elif 0.1 <= temp_prob < 0.5:
         #     # 반전 적용 상하, 좌우, 상하좌우 모두 반전.
         #     img = flip_image(img) 
         # else:
         #     # 그대로
         #     pass
 
-        # Without Cutout
+        # # Without Cutout
         if temp_prob < 0.5:
-            # 반전 적용 상하, 좌우, 상하좌우 모두 반전.
+            # 반전 적용 좌우 반전.
             img = flip_image(img)
         else:
             # 그대로
@@ -1012,6 +1051,8 @@ class CNN_RESNET_18(torch.nn.Module):
             torch.nn.ReLU()
         )
 
+
+        # projection layer 
         self.conv2 = torch.nn.Conv2d(64, 128, kernel_size=2, stride=2)
         self.conv3 = torch.nn.Conv2d(128, 256, kernel_size=2, stride=2)
         self.conv4 = torch.nn.Conv2d(256, 512, kernel_size=2, stride=2)
@@ -1036,6 +1077,554 @@ class CNN_RESNET_18(torch.nn.Module):
         x = self.block1_2(x)
         x += residual
         x = self.ReLU(x)
+
+        residual = self.conv2(x) # 차원 변경을 위한 conv
+        x = self.block2_1(x)
+        x += residual
+        x = self.ReLU(x)
+
+        residual = x
+        x = self.block2_2(x)
+        x += residual
+        x = self.ReLU(x)
+
+        residual = self.conv3(x) # 차원 변경을 위한 conv
+        x = self.block3_1(x)
+        x += residual
+        x = self.ReLU(x)
+
+        residual = x
+        x = self.block3_2(x)
+        x += residual
+        x = self.ReLU(x)
+
+        residual = self.conv4(x) # 차원 변경을 위한 conv
+        x = self.block4_1(x)
+        x += residual
+        x = self.ReLU(x)
+
+        residual = x
+        x = self.block4_2(x)
+        x += residual
+        x = self.ReLU(x)
+        
+        residual = self.conv5(x) # 차원 변경을 위한 conv
+        x = self.block5_1(x)
+        x += residual
+        x = self.ReLU(x)
+
+        residual = x
+        x = self.block5_2(x)
+        x += residual
+        x = self.ReLU(x)
+
+        x = self.avgpool(x) # Global Average Pooling
+
+        x = torch.reshape(x, [-1, 1 * 1 * 512]) # Linear 형태로 변환.
+
+        x = self.fullconnected_layer(x)
+        x = self.output_layer(x)
+
+        return x
+
+
+# 이번 MEETING 에서 제안받은 다른 구조의 RESNET
+# 구조는 대략 이런 방식임
+# input x - BN - ReLU - conv - BN - ReLU - conv - add(residual) - output
+# 블록은 RESNET-18을 계승.
+class CNN_RESNET_NEW(torch.nn.Module):
+    def __init__(self, outputsize = 10):
+        super(CNN_RESNET_NEW, self).__init__()
+
+        self.ReLU = torch.nn.ReLU()
+
+        self.input_layer = torch.nn.Sequential(
+            torch.nn.Conv2d(3, 64, kernel_size=3, padding=1),
+        )
+
+        self.block1_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+        )
+
+        self.block1_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        )
+
+        self.block2_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        )
+
+        self.block2_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        )
+
+        self.block3_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        )
+
+        self.block3_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        )
+
+        self.block4_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        )
+
+        self.block4_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        )
+
+        self.block5_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        )
+
+        self.block5_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        )
+
+        self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
+
+        # Projection layer 
+        self.conv2 = torch.nn.Conv2d(64, 128, kernel_size=2, stride=2)
+        self.conv3 = torch.nn.Conv2d(128, 256, kernel_size=2, stride=2)
+        self.conv4 = torch.nn.Conv2d(256, 512, kernel_size=2, stride=2)
+        self.conv5 = torch.nn.Conv2d(512, 512, kernel_size=2, stride=2)
+
+
+        # Full Connected layer
+        self.FC = torch.nn.Sequential(
+            torch.nn.Linear(1 * 1 * 512, 1000),
+            torch.nn.ReLU()
+        )
+
+        # Output layer
+        self.output_layer = torch.nn.Sequential(
+            torch.nn.Linear(1000, outputsize)
+        )
+
+
+    def forward(self, x):
+        x = self.input_layer(x)
+
+        residual = x
+        x = self.block1_1(x)
+        x += residual
+
+        residual = x
+        x = self.block1_2(x)
+        x += residual
+        
+        residual = self.conv2(x) # 차원 변경을 위한 conv
+        x = self.block2_1(x)
+        x += residual
+
+        residual = x
+        x = self.block2_2(x)
+        x += residual
+
+        residual = self.conv3(x) # 차원 변경을 위한 conv
+        x = self.block3_1(x)
+        x += residual
+
+        residual = x
+        x = self.block3_2(x)
+        x += residual
+
+        residual = self.conv4(x) # 차원 변경을 위한 conv
+        x = self.block4_1(x)
+        x += residual
+
+        residual = x
+        x = self.block4_2(x)
+        x += residual
+
+        residual = self.conv5(x) # 차원 변경을 위한 conv
+        x = self.block5_1(x)
+        x += residual
+
+        residual = x
+        x = self.block5_2(x)
+        x += residual
+
+        x = self.avgpool(x) # Global Average Pooling
+
+        x = torch.reshape(x, [-1, 1 * 1 * 512]) # Linear 형태로 변환.
+
+        x = self.FC(x)
+        x = self.output_layer(x)
+        
+        return x
+    
+class CNN_RESNET_NEW_Light(torch.nn.Module):
+    def __init__(self, outputsize = 10):
+        super(CNN_RESNET_NEW_Light, self).__init__()
+
+        self.ReLU = torch.nn.ReLU()
+
+        self.input_layer = torch.nn.Sequential(
+            torch.nn.Conv2d(3, 64, kernel_size=3, padding=1),
+        )
+
+        self.block1_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+        )
+
+        self.block1_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        )
+
+        self.block2_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        )
+
+        self.block2_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        )
+
+        self.block3_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        )
+
+        self.block3_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        )
+
+        self.block4_1 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        )
+
+        self.block4_2 = torch.nn.Sequential(
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        )
+
+        # self.block5_1 = torch.nn.Sequential(
+        #     torch.nn.BatchNorm2d(512),
+        #     torch.nn.ReLU(),
+        #     torch.nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
+        #     torch.nn.BatchNorm2d(512),
+        #     torch.nn.ReLU(),
+        #     torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        # )
+
+        # self.block5_2 = torch.nn.Sequential(
+        #     torch.nn.BatchNorm2d(512),
+        #     torch.nn.ReLU(),
+        #     torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+        #     torch.nn.BatchNorm2d(512),
+        #     torch.nn.ReLU(),
+        #     torch.nn.Conv2d(512, 512, kernel_size=3, padding=1)
+        # )
+
+        self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
+
+        # Projection layer 
+        self.conv2 = torch.nn.Conv2d(64, 128, kernel_size=2, stride=2)
+        self.conv3 = torch.nn.Conv2d(128, 256, kernel_size=2, stride=2)
+        self.conv4 = torch.nn.Conv2d(256, 512, kernel_size=2, stride=2)
+        # self.conv5 = torch.nn.Conv2d(512, 512, kernel_size=2, stride=2)
+
+
+        # Full Connected layer
+        self.FC = torch.nn.Sequential(
+            torch.nn.Linear(1 * 1 * 512, 1000),
+            torch.nn.ReLU()
+        )
+
+        # Output layer
+        self.output_layer = torch.nn.Sequential(
+            torch.nn.Linear(1000, outputsize)
+        )
+
+
+    def forward(self, x):
+        x = self.input_layer(x)
+
+        residual = x
+        x = self.block1_1(x)
+        x += residual
+
+        residual = x
+        x = self.block1_2(x)
+        x += residual
+        
+        residual = self.conv2(x) # 차원 변경을 위한 conv
+        x = self.block2_1(x)
+        x += residual
+
+        residual = x
+        x = self.block2_2(x)
+        x += residual
+
+        residual = self.conv3(x) # 차원 변경을 위한 conv
+        x = self.block3_1(x)
+        x += residual
+
+        residual = x
+        x = self.block3_2(x)
+        x += residual
+
+        residual = self.conv4(x) # 차원 변경을 위한 conv
+        x = self.block4_1(x)
+        x += residual
+
+        residual = x
+        x = self.block4_2(x)
+        x += residual
+
+        # residual = self.conv5(x) # 차원 변경을 위한 conv
+        # x = self.block5_1(x)
+        # x += residual
+
+        # residual = x
+        # x = self.block5_2(x)
+        # x += residual
+
+        x = self.avgpool(x) # Global Average Pooling
+
+        x = torch.reshape(x, [-1, 1 * 1 * 512]) # Linear 형태로 변환.
+
+        x = self.FC(x)
+        x = self.output_layer(x)
+        
+        return x
+
+
+# 2중 RESNET 구조를 생각해보자.
+# residual block 안에 residual block이 들어가는 형태.
+# x - F(x) - F(x) + x - H(F(x) + x) - H(F(x) + x) + x
+
+# x(input) - block1[F(x)] - residual term [F(x) + x] - block2[H(F(x)] + x) - residual term [H(F(x) + x) + x] - output
+
+# 이런식으로 resnet 두개에 하나를 더 넣는 구조.
+# 또한 dual resnet 구조에서 입력의 0.1~ 0.3 정도를 곱해서 더해주는 방식도 고려중
+# -> 왜냐하면 너무 큰 값이 들어가게 된다면 오히려 성능이 떨어질 가능성을 생각. 잔상이 너무 강하게 남을수도 있으니까.
+
+# 보류
+
+class CNN_RESNET_DUAL_18(torch.nn.Module):
+    def __init__(self, outputsize = 10):
+        super(CNN_RESNET_DUAL_18, self).__init__()
+
+        self.ReLU = torch.nn.ReLU()
+
+        self.BN64 = torch.nn.BatchNorm2d(64)
+        self.BN128 = torch.nn.BatchNorm2d(128)
+        self.BN256 = torch.nn.BatchNorm2d(256)
+        self.BN512 = torch.nn.BatchNorm2d(512)
+
+        self.input_layer = torch.nn.Sequential(
+            torch.nn.Conv2d(3, 64, kernel_size=3, padding=1),
+        )
+
+
+        self.block1_1 = torch.nn.Sequential(
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64)
+        )
+
+        self.block1_2 = torch.nn.Sequential(
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(64)
+        )
+
+        self.block2_1 = torch.nn.Sequential(
+            torch.nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(128)
+        )
+
+        self.block2_2 = torch.nn.Sequential(
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(128),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(128, 128, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(128)
+        )
+
+        self.block3_1 = torch.nn.Sequential(
+            torch.nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(256)
+        )
+        self.block3_2 = torch.nn.Sequential(
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(256),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(256)
+        )
+
+        self.block4_1 = torch.nn.Sequential(
+            torch.nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512)
+        )
+
+        self.block4_2 = torch.nn.Sequential(
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512)
+        )
+
+        self.block5_1 = torch.nn.Sequential(
+            torch.nn.Conv2d(512, 512, kernel_size=3, stride=2, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512)
+        )
+
+        self.block5_2 = torch.nn.Sequential(
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            torch.nn.BatchNorm2d(512)
+        )
+
+        self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
+
+        self.fullconnected_layer = torch.nn.Sequential(
+            torch.nn.Linear(1 * 1 * 512, 1000),
+            torch.nn.ReLU()
+        )
+
+
+        # projection layer 
+        self.conv2_over = torch.nn.Conv2d(64, 64, kernel_size=1, stride=1)
+
+        self.conv2 = torch.nn.Conv2d(64, 128, kernel_size=2, stride=2)
+        self.conv3 = torch.nn.Conv2d(128, 256, kernel_size=2, stride=2)
+        self.conv4 = torch.nn.Conv2d(256, 512, kernel_size=2, stride=2)
+        self.conv5 = torch.nn.Conv2d(512, 512, kernel_size=2, stride=2)
+
+        self.output_layer = torch.nn.Sequential(
+            torch.nn.Linear(1000, outputsize)
+        )
+
+    # RESNET 구조는 FORWARD에서 잔차연결이 들어가게 설계 할 예정임.
+    def forward(self, x):
+        # 입력레이어
+        x = self.input_layer(x)
+
+        # 잔차연결 시작. but stride 때문에 차원변경이 일어나기 떄문에, 해당 부분을 맞춰줘야함.
+        residual = x # 64채널
+        residual_over = x
+        x = self.block1_1(x)
+        x += residual
+        x = self.ReLU(x)
+
+        residual = x
+        x = self.block1_2(x) # 64채널
+        x += residual
+        x = self.ReLU(x)
+
+        x += residual_over
+        x = self.BN64(x)
 
         residual = self.conv2(x)
         x = self.block2_1(x)
@@ -1085,4 +1674,7 @@ class CNN_RESNET_18(torch.nn.Module):
         x = self.output_layer(x)
 
         return x
+    
 
+# Pyramidial Resnet구조에서 제안한 block
+# 기본적으로 bottle neck 구조와 유사함.
