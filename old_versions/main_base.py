@@ -1,3 +1,5 @@
+### 가장 기본이 되는 Main Code 입니다. ### 
+
 # 목표기능 
 # 1. Data Augmentation을 이용한 학습. - Cut mix, Shuffle ... etc - data에 변화를 줘서 정확도를 끌어올리는 방식.
 # 2. Data Shuffle을 통한 overfitting의 방지. - same as 1.
