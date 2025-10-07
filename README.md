@@ -1,12 +1,13 @@
 # AdvancedDeeplearningProject1
 Advanced Deeplearning Project1 - Using CIFAR10 Dataset
-고급 딥러닝 프로그래밍 수업 프로젝트 - CIFAR10 Dataset 학습
+
 
 ## Introduction
-- 이 프로젝트는 CIFAR-10 예측에 있어서 높은 정확도를 목표로 함.
-- 딥러닝 학습 파이프라인(데이터 전처리, 모델정의, 학습 루프 등을 포함함.
+- The goal of this project is to achieve high accuracy on CIFAR-10 image classification.
+- This project implements a full deep learning pipeline, including data preprocessing, model definition, and training loop.
+- The CIFAR-10 dataset consists of 10 classes, each containing 5,000 training images and 100 test images
+    - total 50,000 train images, 1,000 test images.
 
-- CIFAR-10 데이터셋에는 10 class가 존재하며, 각각의 Class는 5천장의 학습데이터와, 1000장의 테스트데이터로 이루어져있음.
 
 ## Used Language / Framworks / Library
 - Python 3.9
@@ -14,17 +15,56 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 - CUDA 12.8
 - Numpy
 - OpenCV
-- Os
+- OS
 - tqdm
 
-## Details & Features
-- 데이터 전처리(Data preprocessing): 평균/표준편차를 이용한 정규화
-- 데이터 증강(Data Augmentation): CutOut, Flip
-- Residual Block(Pre-Activation) 기반 네트워크 구현
-  - VGG-16 및 RESNET-18, RESNET-50을 구현함.
-  - 또한, Pre-Activation RESNET을 구현함.
-  - RoR(Residual Network of Residual Network) - 3 (Pre-Activation ver)을 구현함.(110)
-- Checkpoint save, load
 
-### 성능
+## Details & Features
+- Data Preprocessing: Normalization using mean and standard deviation
+- Data Augmentation: CutOut, Horizontal Flip
+- Models Implemented:
+    - VGG-16
+    - ResNet-18, ResNet-50
+    - Preactivation ResNet
+    - RoR-3 (Residual Network of Residaul Networks) - 110 layer Pre-Activation Version
+- Training Utilities: Checkpoint save/load
+
+
+## Performance
 - CIFAR-10 Test Accuracy: 91% (100k iterations, minibatch  size: 128) (Using RoR-3 110 model)
+
+
+
+### 한국어 설명
+
+# 고급 딥러닝 프로그래밍 수업 프로젝트 - CIFAR10 Dataset 학습
+
+## 상세설명
+- 이 프로젝트의 목표는 CIFAR-10 이미지 분류에서 높은 정확도를 달성하는 것임.
+- 데이터 전처리, 모델 정의, 학습 루프 등 전체 딥러닝 파이프라인을 구현함.
+- CIFAR-10 데이터셋은 총 10개의 클래스(Class)로 구성되어 있으며, 각 클래스마다 5,000장의 학습 이미지와 100장의 테스트 이미지가 있음.
+    - 전체데이터: 학습용 50,000장, 테스트용 1,000장
+
+
+## 사용된 언어 / 프레임워크 / 라이브러리
+- Python 3.9
+- PyTorch
+- CUDA 12.8
+- Numpy
+- OpenCV
+- OS
+- tqdm
+
+
+## 세부 내용 및 특징
+- 데이터 전처리: 평균 및 표준편차를 이용한 정규화
+- 데이터 증강: CutOut, 좌우 반전(FLip)
+- 구현한 모델:
+    - VGG-16
+    - ResNet-18, ResNet-50
+    - PreActivation ResNet
+    - RoR-3 (Residual Network of Residaul Networks) - 110 레이어 Pre-Activation 버전
+
+
+## 성능
+- CIFAR-10 테스트 정확도: 91% (100k iterations, 미니배치 크기: 128) (RoR-3 110 모델 사용)
