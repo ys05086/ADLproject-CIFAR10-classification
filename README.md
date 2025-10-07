@@ -1,8 +1,10 @@
 # AdvencedDeeplearningProject1
 Advenced Deeplearning Project1 - Using CIFAR10 Dataset
 
+고급 딥러닝 프로그래밍 수업 프로젝트 - 1
 
-## 커스텀된 CIFAR-10 데이터셋을 이용하는 학습
+
+## CIFAR-10 데이터셋 5만장을 이용하는 학습
 
 ### 목표: 높은 정확도
 
@@ -12,5 +14,5 @@ VGG-16 및 RESNET-18, RESNET-50을 구현함.
 
 또한, Pre-Activation RESNET을 구현함.
 
-RoR - 3 (Pre-Activation ver)을 구현함.(110)
+RoR(Residual Network of Residual Network) - 3 (Pre-Activation ver)을 구현함.(110)
 
