@@ -11,3 +11,5 @@ CIFAR-10 커스텀 데이터셋에는 10class가 존재하며, 각각의 Class�
 VGG-16 및 RESNET-18, RESNET-50을 구현함.
 
 또한, Pre-Activation RESNET을 구현함.
+
+RoR - 3 (Pre-Activation ver)을 구현함.(110)
