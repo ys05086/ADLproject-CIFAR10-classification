@@ -27,6 +27,4 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 - Checkpoint save, load
 
 ### 성능
-- CIFAR-10 Test Accuracy: 91% (100k iterations, minibatch  size: 128)
-
-
+- CIFAR-10 Test Accuracy: 91% (100k iterations, minibatch  size: 128) (Using RoR-3 110 model)
