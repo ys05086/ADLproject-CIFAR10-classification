@@ -20,8 +20,8 @@ import function as ftn
 # user set param
 # num_training = 200000 # 200000
 learning_rate = 0.1
-model_save_path = '/ADL_project/PROJECT1_side/model/cpu/'
-batch_size = 1000
+model_save_path = ''
+batch_size = 2500
 restore_iter = 16400
 num_training = (50000 // batch_size) * 50 # 500 epochs with almost full data
 
@@ -29,12 +29,12 @@ restore_lr = 0.01
 brestore = False
 
 # Load Data
-train_path = '/ADL_project/PROJECT1/CIFAR10/train/'
-test_path = '/ADL_project/PROJECT1/CIFAR10/test/'
+train_path = ''
+test_path = ''
 train_images, train_cls, train_mean, train_std = ftn.load_image(train_path, 50000)
 test_images, test_cls, test_mean, test_std = ftn.load_image(test_path, 1000, mean = train_mean, std = train_std)
 
-# bulid network
+# bulid network - RoR-3 110 model
 model = ftn.RoRNet()
 
 # restore data
