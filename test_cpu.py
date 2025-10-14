@@ -14,7 +14,7 @@ model_path = ''
 
 # data load
 test_path = ''
-test_images, test_cls, test_mean, test_std = ftn.load_image(test_path, 10000)
+test_images, test_cls = ftn.load_image(test_path, 10000, preprocessing = False)
 
 model = ftn.RoRNet()
 
