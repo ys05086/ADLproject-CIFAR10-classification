@@ -12,19 +12,19 @@ print("Using device:", device)
 for_test = False
 
 # model name
-model_name = 'model_15600.pt'
+model_name = ''
 
 # just load model and test
-model_path = './Project1_1_alter/model/cpu/'
+model_path = ''
 
 # data load
-test_path = './Project1_1/data/test/'
-test_images, test_cls = ftn.load_image(test_path, 10000, for_test=for_test)
+test_path = ''
+test_images, test_cls = ftn.load_image(test_path, 10000, preprocessing = False)
 
 # Build network (pytorch)
 model = ftn.RoRNet().to(device)
 
-model.load_state_dict(torch.load(model_path + model_name, map_location=device))
+model.load_state_dict(torch.load(model_path + model_name, map_location=device), strict = False)
 model.eval()
 
 print('Model loaded')
