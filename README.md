@@ -10,7 +10,7 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 
 
 ## Used Language / Framworks / Library
-- Python 3.9
+- Python 3.9.18
 - PyTorch
 - CUDA 12.8
 - Numpy
@@ -51,7 +51,7 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 
 
 ## 사용된 언어 / 프레임워크 / 라이브러리
-- Python 3.9
+- Python 3.9.18
 - PyTorch
 - CUDA 12.8
 - Numpy
