@@ -1,7 +1,5 @@
-# i made the condition similar to the paper of RoR-3
-# iter is too much: spent 10 hours for training 100000 iteration.
-# but, iter in paper is almost 200000 in my learning( with random mini batch )
-# actually, random minibatch is not mini batch.
+# i made the condition similar to the paper
+# iter is too much: spent 10 hours for training 100000 iteration
 # and batch_size =/= mini_batch size
 # btw paper's contidtion is this:
 #                                 Data Preprocessing  : subtract mean, devide std
@@ -9,7 +7,7 @@
 #                                 optimizer           : Adam
 #                                 weight_decay = 1e-4 : L2 regularization
 #                                 momentum = 0.9      : to add acceleration
-# but, Data Preprocessing is actually not needed
+# but, Data Preprocessing is actually not needed      : used dividing by 255.0
 import os
 import torch
 import numpy as np
@@ -20,21 +18,21 @@ import function as ftn
 # user set param
 # num_training = 200000 # 200000
 learning_rate = 0.1
-model_save_path = ''
-batch_size = 2500
-restore_iter = 16400
-num_training = (50000 // batch_size) * 50 # 500 epochs with almost full data
+model_save_path = './Project1_1_alter/model/128-omega/'
+batch_size = 128
+restore_iter = 64000
+num_training = (50000 // batch_size) * 500 # 500 epochs with almost full data
 
-restore_lr = 0.01
-brestore = False
+restore_lr = 0.001
+brestore = True
 
 # Load Data
-train_path = ''
-test_path = ''
-train_images, train_cls, train_mean, train_std = ftn.load_image(train_path, 50000)
-test_images, test_cls, test_mean, test_std = ftn.load_image(test_path, 1000, mean = train_mean, std = train_std)
+train_path = 'Project1_1/CIFAR10/train/'
+test_path = 'Project1_1/CIFAR10/test/'
+train_images, train_cls = ftn.load_image(train_path, 50000, preprocessing = False)
+test_images, test_cls = ftn.load_image(test_path, 1000, preprocessing = False)
 
-# bulid network - RoR-3 110 model
+# bulid network
 model = ftn.RoRNet()
 
 # restore data
@@ -62,7 +60,7 @@ for it in tqdm(range(restore_iter if brestore else 0, num_training), ncols=120, 
     train_loss.backward()
     optimizer.step()
 
-    if it % 100 == 0 and it > 0: # restore_iter: # 0 is for testing saving option
+    if it % 1000 == 0 and it > (restore_iter if brestore else 0): # 0 is for testing saving option
         tqdm.write("\niteration: %d " % it)
         tqdm.write("train loss : %f " % train_loss.item())
         tqdm.write('Evaluating the Model...')
@@ -99,14 +97,14 @@ for it in tqdm(range(restore_iter if brestore else 0, num_training), ncols=120, 
         # check point data save
         model_ckpt.append((it, acc, model_save_path + 'model_%d.pt' % it))
     
-    # more easy to read: not one line
-    if it == num_training // 2:
+    # # more easy to read: not one line
+    if it == 20000:
         optimizer.param_groups[0]['lr'] = 0.01
 
-    if it == num_training * 3 // 4:
+    if it == 40000:
         optimizer.param_groups[0]['lr'] = 0.001 # end is near here
 
-    if it == 220000:
+    if it == 60000:
         optimizer.param_groups[0]['lr'] = 0.0001
 
     # if it == 100000:
