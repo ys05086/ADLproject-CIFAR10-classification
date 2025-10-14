@@ -21,7 +21,7 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 
 ## Details & Features
 - Data Preprocessing: Normalization using mean and standard deviation
-- Data Augmentation: CutOut, Horizontal Flip
+- Data Augmentation: Horizontal Flip, CutOut(Implemented but not used because resolution of data is too small)
 - Models Implemented:
     - VGG-16
     - ResNet-18, ResNet-50
@@ -62,7 +62,7 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 
 ## 세부 내용 및 특징
 - 데이터 전처리: 평균 및 표준편차를 이용한 정규화
-- 데이터 증강: CutOut, 좌우 반전(FLip)
+- 데이터 증강: 좌우 반전(FLip), CutOut(구현은 되어있지만 사용되지 않음. 32 * 32 이미지의 해상도가 너무 낮기때문)
 - 구현한 모델:
     - VGG-16
     - ResNet-18, ResNet-50
