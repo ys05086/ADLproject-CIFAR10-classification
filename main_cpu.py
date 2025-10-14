@@ -16,19 +16,18 @@ from tqdm import tqdm
 import function as ftn
 
 # user set param
-# num_training = 200000 # 200000
 learning_rate = 0.1
-model_save_path = './Project1_1_alter/model/128-omega/'
+model_save_path = ''
 batch_size = 128
-restore_iter = 64000
+restore_iter = 20000
 num_training = (50000 // batch_size) * 500 # 500 epochs with almost full data
 
 restore_lr = 0.001
-brestore = True
+brestore = False
 
 # Load Data
-train_path = 'Project1_1/CIFAR10/train/'
-test_path = 'Project1_1/CIFAR10/test/'
+train_path = ''
+test_path = ''
 train_images, train_cls = ftn.load_image(train_path, 50000, preprocessing = False)
 test_images, test_cls = ftn.load_image(test_path, 1000, preprocessing = False)
 
@@ -106,12 +105,6 @@ for it in tqdm(range(restore_iter if brestore else 0, num_training), ncols=120, 
 
     if it == 60000:
         optimizer.param_groups[0]['lr'] = 0.0001
-
-    # if it == 100000:
-    #     optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] * 0.1
-
-    # if it == 150000:
-    #     optimizer.param_groups[0]['lr'] = optimizer.param_groups[0]['lr'] * 0.1
 
 print('TRAINING DONE')
 print('BEST MODEL')
