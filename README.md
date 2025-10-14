@@ -1,4 +1,4 @@
-# AdvancedDeeplearningProject1
+# ADL Project - CIFAR-10 Classification
 Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 
 
