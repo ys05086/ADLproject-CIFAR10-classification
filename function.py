@@ -1,12 +1,14 @@
 # New function file
 # file was too big.
 # changes: to build Network easily, added ResNet block(Pre-activaation type)
-#          made RoR-3 network (110)
+#          made RoR-3 network
 #          added data preprocessing ftn ( for data normalization ) : subtract mean, divide std
 #          made cutout and flip work in one ftn
 #          changed data preprocessing to / 255.0 
 #          made if clauses short ex) num_img // 10 if for_test else num_img
 #          added data_preprocessing_ ftn 
+#          added bias = False options
+#          changed options for load_image
 import os
 import torch
 import numpy as np
@@ -14,7 +16,7 @@ import cv2
 from tqdm import tqdm
 
 # Ftn for Image Loading // Added Test Data Setting 
-def load_image(path, num_img, for_test = False, mean = None, std = None):
+def load_image(path, num_img, for_test = False, mean = None, std = None, preprocessing = False):
     # this is more minimal: 
     doncare = 10 if for_test else 1
     imgs = np.zeros((num_img // doncare, 32, 32, 3)) # shape : [N, H, W, C]
@@ -36,21 +38,23 @@ def load_image(path, num_img, for_test = False, mean = None, std = None):
             imgs[img_count, :, :, :] = img # [32, 32, 3] [H, W, C]
             cls[img_count] = ic # class index assignment
             img_count += 1
-    # imgs = data_preprocessing(imgs) # data preprocessing
-    imgs, mean, std = data_preprocessing_(imgs, mean, std)
-    print("Image Loaded.")
-    return imgs, cls, mean, std
+        # imgs = data_preprocessing(imgs) # data preprocessing
+    if preprocessing:
+        imgs, mean, std = data_preprocessing_(imgs, mean, std)
+        print("Image Loaded.")
+        return imgs, cls, mean, std
+    else:
+        imgs = data_preprocessing(imgs)
+        print("Image Loaded.")
+        return imgs, cls
 
 # Ftn for Data Preprocessing
-# Subtract mean, diveide std
+# Data Preprocessing just dividing 255.0
 def data_preprocessing(images): # [N, H, W, C] - numpy array
-    # mean = np.mean(images, axis=(0, 1, 2)) # mean for each channel
-    # std = np.std(images, axis=(0, 1, 2)) # std for each channel
-
-    # images = (images - mean) / std # data preprocessing which we call normalization
     images = images / 255.0
     return images
-
+    
+# Subtract mean, diveide std
 def data_preprocessing_(images, mean = None, std = None):
     if mean is None or std is None:
         mean = np.mean(images, axis=(0, 1, 2)) # mean for each channel
@@ -111,7 +115,7 @@ class ResNet(torch.nn.Module):
         super(ResNet, self).__init__()
         self.block1_1 = Block(3, 16, stride_true=True)
 
-# RoR-3 (Actually preactivation ror) -110
+# RoR-3 (Actually preactivation ror) - 110
 class RoRNet(torch.nn.Module):
     def __init__(self, outputsize = 10):
         super(RoRNet, self).__init__()
@@ -119,17 +123,17 @@ class RoRNet(torch.nn.Module):
 
         self.ReLU = torch.nn.ReLU()
 
-        self.input_conv = torch.nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1)
+        self.input_conv = torch.nn.Conv2d(3, 16, kernel_size = 3, stride = 1, padding = 1, bias = False)
 
-        self.stage1 = RoRBlock(16, 16, stride=1, stride_true=False) # 16
-        self.stage2 = RoRBlock(16, 32, stride=2, stride_true=True) # 32
-        self.stage3 = RoRBlock(32, 64, stride=2, stride_true=True) # 64
+        self.stage1 = RoRBlock(16, 16, stride = 1, stride_true = False) # 16
+        self.stage2 = RoRBlock(16, 32, stride = 2, stride_true = True) # 32
+        self.stage3 = RoRBlock(32, 64, stride = 2, stride_true = True) # 64
 
         self.bn = torch.nn.BatchNorm2d(64)
         self.avgpool = torch.nn.AvgPool2d(8)
 
-        # level 1 projection layer
-        self.projection = torch.nn.Conv2d(16, 64, kernel_size=1, stride=4, bias=False)
+        # stage 1 (start to end) projection layer
+        self.projection = torch.nn.Conv2d(16, 64, kernel_size = 1, stride = 4, bias = False)
         self.fc = torch.nn.Linear(64, outputsize)
 
     def forward(self, x):
@@ -139,6 +143,7 @@ class RoRNet(torch.nn.Module):
         x = self.stage2(x)
         x = self.stage3(x)
         x = x + self.projection(residual)
+        
         x = self.bn(x)
         x = self.ReLU(x)
         x = self.avgpool(x)
@@ -148,6 +153,14 @@ class RoRNet(torch.nn.Module):
 
 # RoR-3 -146
 
+# Dense Net
+class DenseNet(torch.nn.Module):
+    def __init__(self, in_channel, out_channel, gorwth_rate = 32):
+        super().__init__()
+
+    def forward(self, x):
+        return x
+
 # Residual Block (Pre Activation)
 class Block(torch.nn.Module):
     def __init__(self, in_channel, out_channel, stride = 1, stride_true = False):
@@ -156,14 +169,14 @@ class Block(torch.nn.Module):
         self.ReLU = torch.nn.ReLU()
         self.stride_true = stride_true
         self.stride = stride
-        self.conv1 = torch.nn.Conv2d(in_channel, out_channel, kernel_size = 3, stride = self.stride, padding = 1, bias=False)
-        self.conv2 = torch.nn.Conv2d(out_channel, out_channel, kernel_size = 3, stride = 1, padding = 1, bias=False)
+        self.conv1 = torch.nn.Conv2d(in_channel, out_channel, kernel_size = 3, stride = self.stride, padding = 1, bias = False)
+        self.conv2 = torch.nn.Conv2d(out_channel, out_channel, kernel_size = 3, stride = 1, padding = 1, bias = False)
 
         self.bn1 = torch.nn.BatchNorm2d(in_channel)
         self.bn2 = torch.nn.BatchNorm2d(out_channel)
 
         # layer for projection
-        self.projection = torch.nn.Conv2d(in_channel, out_channel, kernel_size = 1, stride = 2, bias=False)
+        self.projection = torch.nn.Conv2d(in_channel, out_channel, kernel_size = 1, stride = 2, bias = False)
 
     def forward(self, x):
         residual = self.projection(x) if self.stride_true else x
@@ -207,8 +220,8 @@ class RoRBlock(torch.nn.Module):
         self.block18 = Block(out_channel, out_channel, 1, False)
 
         # level 2 projcetion layer
-        self.projection = torch.nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=1, bias=False)
-        self.projection_stride = torch.nn.Conv2d(in_channel, out_channel, kernel_size=1, stride=2, bias=False)
+        self.projection = torch.nn.Conv2d(in_channel, out_channel, kernel_size = 1, stride = 1, bias = False)
+        self.projection_stride = torch.nn.Conv2d(in_channel, out_channel, kernel_size = 1, stride = 2, bias = False)
 
     def forward(self, x):
         residual = x
@@ -259,4 +272,67 @@ class BottleNeck(torch.nn.Module):
 
         
 
+        return x
+
+# Little Dense Block
+class LittleBlock(torch.nn.Module):
+    def __init__(self, in_channel, out_channel):
+        super().__init__()
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.bn1 = torch.nn.BatchNorm2d(in_channel)
+        self.bn2 = torch.nn.BatchNorm2d(out_channel)
+        self.ReLU = torch.nn.ReLU()
+        self.conv1 = torch.nn.Conv2d(in_channel, out_channel, kernel_size = 1, stride = 1, padding = 1, bias = False)
+        self.conv2 = torch.nn.Conv2d(out_channel, out_channel, kernel_size = 3, stride = 1, padding = 1, bias = False)
+
+    def forward(self, x):
+        x = self.bn1(x)
+        x = self.ReLU(x)
+        x = self.conv1(x)
+        x = self.bn2(x)
+        x = self.ReLU(x)
+        x = self.conv2(x)
+        return x
+    
+class TransitionBlock(torch.nn.Module):
+    def __init__(self, in_channel, out_channel):
+        super().__init__()
+
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.bn = torch.nn.BatchNorm2d(in_channel)
+        self.ReLU = torch.nn.ReLU()
+        self.conv = torch.nn.Conv2d(in_channel, out_channel, kernel_size = 1, stride = 1)
+        self.avgpool = torch.nn.AvgPool2d(kernel_size = 2, stride = 2)
+
+    def forward(self, x):
+        x = self.bn(x)
+        x = self.ReLU(x)
+        x = self.conv(x)
+        x = self.avgpool(x)
+        return x
+
+
+# Dense Block
+class DenseBlock(torch.nn.Module):
+    def __init__(self, in_channel, out_channel, layers):
+        super().__init__()
+
+        self.layers = layers
+        self.in_channel = in_channel
+        self.out_channel = out_channel
+        self.ReLU = torch.nn.ReLU()
+        self.bn1 = torch.nn.BatchNorm2d(in_channel)
+        self.bn2 = torch.nn.BatchNorm2d(out_channel)
+
+        self.stage = []
+        for i in range(layers):
+            self.stage.append(LittleBlock(in_channel, out_channel) if i == 0 else LittleBlock(out_channel, out_channel))
+
+    def forward(self, x):
+        residual = x
+        mem = []
+        for i in range(self.layers):
+            mem[i].append(self.stage[i](x))
         return x
