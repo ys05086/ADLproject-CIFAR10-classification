@@ -31,7 +31,7 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 
 
 ## Performance
-- CIFAR-10 Test Accuracy: 91% (100k iterations, minibatch  size: 128) (Using RoR-3 110 model)
+- CIFAR-10 Test Accuracy: 92% (65k iterations, minibatch  size: 128) (Using RoR-3 110 model)
 
 
 ## WIP
@@ -71,7 +71,7 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 
 
 ## 성능
-- CIFAR-10 테스트 정확도: 91% (65k iterations, 미니배치 크기: 128) (RoR-3 110 모델 사용)
+- CIFAR-10 테스트 정확도: 92% (65k iterations, 미니배치 크기: 128) (RoR-3 110 모델 사용)
 
 
 ## 진행중
