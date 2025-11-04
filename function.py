@@ -151,8 +151,6 @@ class RoRNet(torch.nn.Module):
         x = self.fc(x)
         return x
 
-# RoR-3 -146
-
 # Dense Net
 class DenseNet(torch.nn.Module):
     def __init__(self, in_channel, out_channel, gorwth_rate = 32):
@@ -315,6 +313,7 @@ class TransitionBlock(torch.nn.Module):
 
 
 # Dense Block
+# wip
 class DenseBlock(torch.nn.Module):
     def __init__(self, in_channel, out_channel, layers):
         super().__init__()
