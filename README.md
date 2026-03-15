@@ -41,7 +41,7 @@ Advanced Deeplearning Project1 - Using CIFAR10 Dataset
 
 ### 한국어 설명
 
-# 고급 딥러닝 프로그래밍 수업 프로젝트 - CIFAR10 Dataset 학습
+# 고급 딥러닝 프로그래밍 프로젝트 - CIFAR10 Dataset 학습
 
 ## 상세설명
 - 이 프로젝트의 목표는 CIFAR-10 이미지 분류에서 높은 정확도를 달성하는 것임.
